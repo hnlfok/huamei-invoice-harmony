@@ -13,10 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Android SDK
@@ -32,13 +32,25 @@ jobs:
           sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 | tail -3
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
 
+      - name: Verify Java
+        run: |
+          java -version 2>&1 | head -1
+          $JAVA_HOME/bin/java -version 2>&1 | head -1
+          cat $GITHUB_OUTPUT
+
       - name: Build APK
         env:
           ANDROID_SDK_ROOT: ${{ runner.workspace }}/android-sdk
         run: |
-          cd ${{ github.workspace }}
+          pwd
+          ls -la
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon 2>&1 | tail -15
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace 2>&1 | tail -20
+
+      - name: Find APK
+        run: |
+          find . -name "*.apk" -type f 2>/dev/null
+          ls -la app/build/outputs/apk/debug/ 2>/dev/null || echo "Not found at app/build/outputs/apk/debug/"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
