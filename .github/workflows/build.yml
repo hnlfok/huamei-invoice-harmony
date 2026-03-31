@@ -18,6 +18,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y openjdk-17-jdk
           export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+          export GRADLE_OPTS="-Djavax.net.ssl.trustStoreType=JKS"
           echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
           java -version 2>&1 | head -1
 
@@ -28,11 +29,28 @@ jobs:
           wget -q https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip
           mkdir -p cmdline-tools/latest
-          mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
+          for f in cmdline-tools/*; do [ -f "$f" ] && mv "$f" cmdline-tools/latest/; done 2>/dev/null || true
+          ls cmdline-tools/latest/bin/
           export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$PATH
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 | tail -3
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 | tail -5
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+
+      - name: Debug directory structure
+        run: |
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+          export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$JAVA_HOME/bin:$PATH
+          echo "=== workspace ==="
+          ls -la ${{ github.workspace }}
+          echo "=== workspace/huamei-invoice-harmony ==="
+          ls -la ${{ github.workspace }}/huamei-invoice-harmony/ 2>/dev/null || echo "no subdir"
+          echo "=== app dir ==="
+          cd ${{ github.workspace }}
+          find . -name "build.gradle" -o -name "settings.gradle" 2>/dev/null
+          echo "=== gradle version ==="
+          cd ${{ github.workspace }}/app
+          $JAVA_HOME/bin/java -version 2>&1
+          cat gradle.properties
 
       - name: Build APK
         env:
@@ -42,12 +60,19 @@ jobs:
           export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
           export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$JAVA_HOME/bin:$PATH
           cd ${{ github.workspace }}/app
-          chmod +x ../gradlew
-          ../gradlew assembleDebug --no-daemon 2>&1 | tail -15
+          ls -la
+          ../gradlew --version 2>&1 | head -5
+          ../gradlew assembleDebug --stacktrace 2>&1 | tail -30
+
+      - name: Find APK
+        run: |
+          find ${{ github.workspace }} -name "*.apk" -type f 2>/dev/null
+          ls -la ${{ github.workspace }}/app/build/outputs/apk/debug/ 2>/dev/null || echo "APK not found"
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: 华美物流发货单-HarmonyOS
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ github.workspace }}/app/build/outputs/apk/debug/*.apk
           retention-days: 30
