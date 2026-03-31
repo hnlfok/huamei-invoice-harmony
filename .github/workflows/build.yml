@@ -19,11 +19,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Gradle & Android SDK
+      - name: Setup Android SDK
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gradle unzip wget
-          gradle -v | head -3
           mkdir -p $HOME/android-sdk
           cd $HOME/android-sdk
           wget -q https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip -O cmdline-tools.zip
@@ -35,20 +32,24 @@ jobs:
           sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 | tail -3
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
 
-      - name: Generate Gradle Wrapper
+      - name: Download Gradle wrapper jar
         run: |
-          cd ${{ github.workspace }}
-          gradle wrapper --gradle-version 7.6.3
-          ls -la gradlew*
+          mkdir -p gradle/wrapper
+          wget -q https://github.com/gradle/gradle-distributions/releases/download/v7.6.3/gradle-7.6.3-wrapper.jar \
+            -O gradle/wrapper/gradle-wrapper.jar 2>&1 | tail -3
+          ls -lh gradle/wrapper/
+          # Fallback: download from services.gradle.org
+          if [ ! -s gradle/wrapper/gradle-wrapper.jar ]; then
+            wget -q "https://services.gradle.org/distributions/gradle-7.6.3-bin.zip" -O /tmp/gradle.zip
+            unzip -o /tmp/gradle.zip -d /tmp/
+            cp /tmp/gradle-7.6.3/lib/gradle-wrapper-*.jar gradle/wrapper/gradle-wrapper.jar 2>/dev/null || true
+          fi
 
       - name: Build APK
         env:
           ANDROID_SDK_ROOT: ${{ runner.workspace }}/android-sdk
-          JAVA_HOME: ${{ runner.tool_cache }}/Java_Temurin-Hotspot_jdk/17.0.18-8/x64
         run: |
-          export JAVA_HOME=${{ runner.tool_cache }}/Java_Temurin-Hotspot_jdk/17.0.18-8/x64
-          cd ${{ github.workspace }}
-          pwd && ls -la
+          pwd && ls -la gradle/wrapper/
           chmod +x gradlew
           ./gradlew :app:assembleDebug --no-daemon 2>&1 | tail -15
 
