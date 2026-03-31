@@ -25,8 +25,7 @@ jobs:
         run: |
           mkdir -p $HOME/android-sdk
           cd $HOME/android-sdk
-          wget -q https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip -O cmdline-tools.zip || \
-          curl -sL https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip -o cmdline-tools.zip
+          wget -q https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip
           mkdir -p cmdline-tools/latest
           mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
@@ -42,13 +41,19 @@ jobs:
         run: |
           export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
           export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$JAVA_HOME/bin:$PATH
-          cd ${{ github.workspace }}
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon 2>&1 | tail -20
+
+      - name: Find APK
+        run: |
+          find . -name "*.apk" -type f 2>/dev/null
+          ls -lh app/build/outputs/apk/debug/ 2>/dev/null || echo "APK dir not found"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: 华美物流发货单-HarmonyOS
-          path: app/build/outputs/apk/debug/*.apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/*/debug/*.apk
           retention-days: 30
