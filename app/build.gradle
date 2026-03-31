@@ -2,14 +2,27 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.4.2'
     }
 }
+
 plugins {
     id 'com.android.application' version '7.4.2'
 }
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/google' }
+    }
+}
+
 android {
     namespace 'com.huamei.invoice'
     compileSdk 34
@@ -31,6 +44,7 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
 }
+
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
 }
