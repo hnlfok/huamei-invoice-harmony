@@ -13,13 +13,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java 11
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-11-jdk
-          export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-          echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
-          java -version 2>&1 | head -1
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
 
       - name: Setup Android SDK
         run: |
@@ -37,18 +35,14 @@ jobs:
       - name: Build APK
         env:
           ANDROID_SDK_ROOT: ${{ runner.workspace }}/android-sdk
-          JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
         run: |
-          export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-          export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$JAVA_HOME/bin:$PATH
-          cd ${{ github.workspace }}/app
-          pwd && ls
-          chmod +x ../gradlew
-          ../gradlew assembleDebug --no-daemon 2>&1 | tail -10
+          cd ${{ github.workspace }}
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon 2>&1 | tail -15
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: 华美物流发货单-HarmonyOS
-          path: ${{ github.workspace }}/app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
