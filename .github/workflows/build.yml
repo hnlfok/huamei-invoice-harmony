@@ -41,19 +41,13 @@ jobs:
         run: |
           export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
           export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$JAVA_HOME/bin:$PATH
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon 2>&1 | tail -20
-
-      - name: Find APK
-        run: |
-          find . -name "*.apk" -type f 2>/dev/null
-          ls -lh app/build/outputs/apk/debug/ 2>/dev/null || echo "APK dir not found"
+          cd ${{ github.workspace }}/app
+          chmod +x ../gradlew
+          ../gradlew assembleDebug --no-daemon 2>&1 | tail -15
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: 华美物流发货单-HarmonyOS
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/*/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
