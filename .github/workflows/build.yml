@@ -19,8 +19,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
+      - name: Install Gradle & Android SDK
         run: |
+          sudo apt-get update
+          sudo apt-get install -y gradle unzip wget
+          gradle -v | head -3
           mkdir -p $HOME/android-sdk
           cd $HOME/android-sdk
           wget -q https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip -O cmdline-tools.zip
@@ -32,25 +35,22 @@ jobs:
           sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 | tail -3
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
 
-      - name: Verify Java
+      - name: Generate Gradle Wrapper
         run: |
-          java -version 2>&1 | head -1
-          $JAVA_HOME/bin/java -version 2>&1 | head -1
-          cat $GITHUB_OUTPUT
+          cd ${{ github.workspace }}
+          gradle wrapper --gradle-version 7.6.3
+          ls -la gradlew*
 
       - name: Build APK
         env:
           ANDROID_SDK_ROOT: ${{ runner.workspace }}/android-sdk
+          JAVA_HOME: ${{ runner.tool_cache }}/Java_Temurin-Hotspot_jdk/17.0.18-8/x64
         run: |
-          pwd
-          ls -la
+          export JAVA_HOME=${{ runner.tool_cache }}/Java_Temurin-Hotspot_jdk/17.0.18-8/x64
+          cd ${{ github.workspace }}
+          pwd && ls -la
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon --stacktrace 2>&1 | tail -20
-
-      - name: Find APK
-        run: |
-          find . -name "*.apk" -type f 2>/dev/null
-          ls -la app/build/outputs/apk/debug/ 2>/dev/null || echo "Not found at app/build/outputs/apk/debug/"
+          ./gradlew :app:assembleDebug --no-daemon 2>&1 | tail -15
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
